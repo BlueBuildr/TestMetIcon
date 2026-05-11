@@ -1,5 +1,5 @@
 ################################################################
-# HelloID-Conn-Prov-Target-{connectorName}-SubPermissions-Group
+# HelloID-Conn-Prov-Target-TestMetIcon-SubPermissions-Group
 # PowerShell V2
 ################################################################
 
@@ -12,7 +12,7 @@ $PrimaryLookupKey = { $_.CostCenter.code } # Mandatory
 $SecondaryLookupKey = { $_.CostCenter.name } # Mandatory
 
 #region functions
-function Resolve-{connectorName}Error {
+function Resolve-TestMetIconError {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
@@ -59,7 +59,7 @@ try {
         throw 'The account reference could not be found'
     }
 
-    Write-Information 'Verifying if a {connectorName} account exists'
+    Write-Information 'Verifying if a TestMetIcon account exists'
     $correlatedAccount = 'userInfo'
     # $correlatedAccount = (Invoke-RestMethod @splatGetUserParams)
 
@@ -148,10 +148,10 @@ try {
         }
 
         'NotFound' {
-            Write-Information "{connectorName} account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
+            Write-Information "TestMetIcon account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
             $outputContext.Success = $false
             $outputContext.AuditLogs.Add([PSCustomObject]@{
-                    Message = "{connectorName} account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
+                    Message = "TestMetIcon account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
                     IsError = $true
                 })
             break
@@ -163,12 +163,12 @@ catch {
     $ex = $PSItem
     if ($($ex.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or
         $($ex.Exception.GetType().FullName -eq 'System.Net.WebException')) {
-        $errorObj = Resolve-{connectorName}Error -ErrorObject $ex
-        $auditMessage = "Could not manage {connectorName} permissions. Error: $($errorObj.FriendlyMessage)"
+        $errorObj = Resolve-TestMetIconError -ErrorObject $ex
+        $auditMessage = "Could not manage TestMetIcon permissions. Error: $($errorObj.FriendlyMessage)"
         Write-Warning "Error at Line '$($errorObj.ScriptLineNumber)': $($errorObj.Line). Error: $($errorObj.ErrorDetails)"
     }
     else {
-        $auditMessage = "Could not manage {connectorName} permissions. Error: $($_.Exception.Message)"
+        $auditMessage = "Could not manage TestMetIcon permissions. Error: $($_.Exception.Message)"
         Write-Warning "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($ex.Exception.Message)"
     }
     $outputContext.AuditLogs.Add([PSCustomObject]@{

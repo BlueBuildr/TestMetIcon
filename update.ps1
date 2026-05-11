@@ -1,5 +1,5 @@
 #################################################
-# HelloID-Conn-Prov-Target-{connectorName}-Enable
+# HelloID-Conn-Prov-Target-TestMetIcon-Update
 # PowerShell V2
 #################################################
 
@@ -7,7 +7,7 @@
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
 
 #region functions
-function Resolve-{connectorName}Error {
+function Resolve-TestMetIconError {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
@@ -53,12 +53,26 @@ try {
         throw 'The account reference could not be found'
     }
 
-    Write-Information 'Verifying if a {connectorName} account exists'
+    Write-Information 'Verifying if a TestMetIcon account exists'
     $correlatedAccount = 'userInfo'
     # $correlatedAccount = (Invoke-RestMethod @splatGetUserParams)
 
+    # Make sure to filter out arrays from $outputContext.Data (If this is not mapped to type Array in the fieldmapping). This is not supported by HelloID.
+    $outputContext.PreviousData = $correlatedAccount
+
     if ($null -ne $correlatedAccount) {
-        $lifecycleProcess = 'EnableAccount'
+        # Always compare the account against the current account in target system
+        $splatCompareProperties = @{
+            ReferenceObject  = @($correlatedAccount.PSObject.Properties)
+            DifferenceObject = @($actionContext.Data.PSObject.Properties)
+        }
+        $propertiesChanged = Compare-Object @splatCompareProperties -PassThru | Where-Object { $_.SideIndicator -eq '=>' }
+        if ($propertiesChanged) {
+            $lifecycleProcess = 'UpdateAccount'
+        }
+        else {
+            $lifecycleProcess = 'NoChanges'
+        }
     }
     else {
         $lifecycleProcess = 'NotFound'
@@ -66,48 +80,60 @@ try {
 
     # Process
     switch ($lifecycleProcess) {
-        'EnableAccount' {
+        'UpdateAccount' {
+            Write-Information "Account property(s) required to update: $($propertiesChanged.Name -join ', ')"
+
+            # Make sure to test with special characters and if needed; add utf8 encoding.
             if (-not($actionContext.DryRun -eq $true)) {
-                Write-Information "Enabling {connectorName} account with accountReference: [$($actionContext.References.Account)]"
-                # < Write Enable logic here >
+                Write-Information "Updating TestMetIcon account with accountReference: [$($actionContext.References.Account)]"
+                # < Write Update logic here >
 
             }
             else {
-                Write-Information "[DryRun] Enable {connectorName} account with accountReference: [$($actionContext.References.Account)], will be executed during enforcement"
+                Write-Information "[DryRun] Update TestMetIcon account with accountReference: [$($actionContext.References.Account)], will be executed during enforcement"
             }
 
             # Make sure to filter out arrays from $outputContext.Data (If this is not mapped to type Array in the fieldmapping). This is not supported by HelloID.
             $outputContext.Success = $true
             $outputContext.AuditLogs.Add([PSCustomObject]@{
-                    Message = 'Enable account was successful'
+                    Message = "Update account was successful, Account property(s) updated: [$($propertiesChanged.name -join ',')]"
+                    IsError = $false
+                })
+            break
+        }
+
+        'NoChanges' {
+            Write-Information "No changes to TestMetIcon account with accountReference: [$($actionContext.References.Account)]"
+            $outputContext.Success = $true
+            $outputContext.AuditLogs.Add([PSCustomObject]@{
+                    Message = "Skipped updating TestMetIcon account with AccountReference: [$($actionContext.References.Account)]. Reason: No changes."
                     IsError = $false
                 })
             break
         }
 
         'NotFound' {
-            Write-Information "{connectorName} account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
+            Write-Information "TestMetIcon account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
             $outputContext.Success = $false
             $outputContext.AuditLogs.Add([PSCustomObject]@{
-                    Message = "{connectorName} account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
+                    Message = "TestMetIcon account: [$($actionContext.References.Account)] could not be found, indicating that it may have been deleted"
                     IsError = $true
                 })
             break
         }
     }
-
-} 
+}
 catch {
-    $outputContext.success = $false
+    $outputContext.Success = $false
     $ex = $PSItem
     if ($($ex.Exception.GetType().FullName -eq 'Microsoft.PowerShell.Commands.HttpResponseException') -or
         $($ex.Exception.GetType().FullName -eq 'System.Net.WebException')) {
-        $errorObj = Resolve-{connectorName}Error -ErrorObject $ex
-        $auditLogMessage = "Could not enable {connectorName} account: [$($actionContext.References.Account)]. Error: $($errorObj.FriendlyMessage)"
+        $errorObj = Resolve-TestMetIconError -ErrorObject $ex
+        $auditLogMessage = "Could not update TestMetIcon account: [$($actionContext.References.Account)]. Error: $($errorObj.FriendlyMessage)"
         Write-Warning "Error at Line '$($errorObj.ScriptLineNumber)': $($errorObj.Line). Error: $($errorObj.ErrorDetails)"
     }
     else {
-        $auditLogMessage = "Could not enable {connectorName} account: [$($actionContext.References.Account)]. Error: $($_.Exception.Message)"
+        $auditLogMessage = "Could not update TestMetIcon account: [$($actionContext.References.Account)]. Error: $($ex.Exception.Message)"
         Write-Warning "Error at Line '$($ex.InvocationInfo.ScriptLineNumber)': $($ex.InvocationInfo.Line). Error: $($ex.Exception.Message)"
     }
     $outputContext.AuditLogs.Add([PSCustomObject]@{
