@@ -70,9 +70,7 @@ try {
             Id          = (New-Guid).Guid
             DisplayName = $actionContext.Data.DisplayName
         }
-        # Example to replace the placeholder code with:
-        # Retrieve user details using an API call and store the result in $correlatedAccount
-        # $correlatedAccount = (Invoke-RestMethod @splatGetUserParams)
+
     }
 
     if ($correlatedAccount.Count -eq 0) {
